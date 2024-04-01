@@ -11,12 +11,18 @@ type TaskScheduler struct {
 
 type GeneratorTaskItem struct {
 	languagesURL string
+	repoName     string
 	ID           int
 }
 
 type LanguagesWorkerTaskItem struct {
 	languages map[string]any
 	ID        int
+}
+
+type LicenseWorkerTaskItem struct {
+	License map[string]any
+	ID      int
 }
 
 func NewTaskScheduler(token string, repos []map[string]any) *TaskScheduler {
@@ -43,15 +49,41 @@ func (t *TaskScheduler) workerLanguages(in chan GeneratorTaskItem) chan Language
 
 }
 
+func (t *TaskScheduler) workerLicense(in chan GeneratorTaskItem) chan LicenseWorkerTaskItem {
+	out := make(chan LicenseWorkerTaskItem)
+
+	for repo := range in {
+		go func(repoIdx int) {
+			license := getLicence(repo.repoName, t.githubAccessToken)
+			out <- LicenseWorkerTaskItem{
+				License: license,
+				ID:      repoIdx,
+			}
+		}(repo.ID)
+	}
+
+	return out
+
+}
+
 func (t *TaskScheduler) merge() {
 	var wg sync.WaitGroup
-	wg.Add(len(t.repos))
-	chRepos := t.generateSourceChannel()
-	chLangs := t.workerLanguages(chRepos)
+	wg.Add(2 * len(t.repos))
+	chRepos1 := t.generateSourceChannel()
+	chRepos2 := t.generateSourceChannel()
+	chLangs := t.workerLanguages(chRepos1)
+	chLicense := t.workerLicense(chRepos2)
 
 	go func() {
 		for l := range chLangs {
 			t.repos[l.ID]["languages"] = l.languages
+			wg.Done()
+		}
+	}()
+
+	go func() {
+		for l := range chLicense {
+			t.repos[l.ID]["license"] = l.License
 			wg.Done()
 		}
 	}()
@@ -65,8 +97,9 @@ func (t *TaskScheduler) generateSourceChannel() chan GeneratorTaskItem {
 		defer close(ch)
 		for repoIdx, repo := range t.repos {
 			item := GeneratorTaskItem{
-				languagesURL: repo["languages_url"].(string),
 				ID:           repoIdx,
+				languagesURL: repo["languages_url"].(string),
+				repoName:     repo["full_name"].(string),
 			}
 			ch <- item
 		}
