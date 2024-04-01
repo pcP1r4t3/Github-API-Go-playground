@@ -19,12 +19,14 @@ func main() {
 		os.Exit(1)
 	}
 
+	handler := NewMyCustomHandler(
+		log,
+		cfg.GithubAccessToken)
+
 	log.Info("Initializing routes")
 	router := handlers.NewRouter(log)
 	router.HandleFunc("/ping", pongHandler)
-	// Initialize web server and configure the following routes:
-	// GET /repos
-	// GET /stats
+	router.HandleFunc("/repos", handler.reposHandler)
 
 	log = log.WithField("port", cfg.Port)
 	log.Info("Listening...")
