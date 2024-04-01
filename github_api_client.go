@@ -6,8 +6,11 @@ import (
 	"net/http"
 )
 
-const GithhubPublicReposEndpoint = "https://api.github.com/repositories"
-const GithhubRepoLicensesEndpoint = "https://api.github.com/repos/%s/license"
+const (
+	GithhubPublicReposEndpoint  = "https://api.github.com/repositories"
+	GithhubRepoLicensesEndpoint = "https://api.github.com/repos/%s/license"
+	EmptyResponse               = "{}"
+)
 
 func getRepos(token string) ([]map[string]any, error) {
 	var repos []map[string]any
@@ -33,8 +36,8 @@ func getRepos(token string) ([]map[string]any, error) {
 	return repos, nil
 }
 
-func getLanguages(repoLangsEndpoint, token string) map[string]any {
-	var languages map[string]any
+func getLanguages(repoLangsEndpoint, token string) any {
+	var languages any
 
 	client := http.Client{}
 	req := NewRequestBuilder().
@@ -44,23 +47,23 @@ func getLanguages(repoLangsEndpoint, token string) map[string]any {
 		Build()
 	res, err := client.Do(req)
 	if err != nil {
-		return nil
+		return EmptyResponse
 	}
 	if res.StatusCode != http.StatusOK {
-		return nil
+		return EmptyResponse
 	}
 
 	if err = json.NewDecoder(res.Body).Decode(&languages); err != nil {
-		return nil
+		return EmptyResponse
 	}
 
 	return languages
 }
 
-func getLicence(repoName, token string) map[string]any {
+func getLicence(repoName, token string) any {
 	var (
 		license            map[string]any
-		licenseInnerObject map[string]any
+		licenseInnerObject any
 	)
 
 	client := http.Client{}
@@ -71,19 +74,18 @@ func getLicence(repoName, token string) map[string]any {
 		Build()
 	res, err := client.Do(req)
 	if err != nil {
-		return nil
+		return EmptyResponse
 	}
 	if res.StatusCode != http.StatusOK {
-		return nil
+		return EmptyResponse
 	}
 
 	if err = json.NewDecoder(res.Body).Decode(&license); err != nil {
-		return nil
+		return EmptyResponse
 	}
-	fmt.Println(license["license"])
-	licenseInnerObject, ok := license["license"].(map[string]any)
+	licenseInnerObject, ok := license["license"]
 	if !ok {
-		return nil
+		return EmptyResponse
 	}
 
 	return licenseInnerObject

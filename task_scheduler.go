@@ -16,12 +16,12 @@ type GeneratorTaskItem struct {
 }
 
 type LanguagesWorkerTaskItem struct {
-	languages map[string]any
+	languages any
 	ID        int
 }
 
 type LicenseWorkerTaskItem struct {
-	License map[string]any
+	License any
 	ID      int
 }
 
