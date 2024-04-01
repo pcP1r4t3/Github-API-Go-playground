@@ -8,3 +8,5 @@ services:
       - "5000:5000"
     command: reflex -r '\.go$$' -s -- sh -c 'go build -buildvcs=false && ./sclng-backend-test-v1'
     stop_signal: SIGKILL
+    env_file:
+      - .env
